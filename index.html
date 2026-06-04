@@ -353,21 +353,30 @@ function properCase(str) {
   return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// Strip WhatsApp bold markers and label prefixes like "Name:", "Father's Name:", etc.
+// Strip WhatsApp bold markers, numbered prefixes, label prefixes, trailing punctuation
 function stripLabel(str) {
+  // Remove asterisks (WhatsApp bold)
   str = str.replace(/\*/g, "").trim();
-  // Remove leading label: anything before first colon that doesn't look like a value
-  // Don't strip if it looks like it IS a value (has digits, @, starts with digit)
+
+  // Remove numbered prefixes like "1-", "2.", "3)", "10-", "10." etc.
+  str = str.replace(/^\d{1,2}[\.\-\)]\s*/, "").trim();
+
+  // Remove label prefix: anything before first colon that looks like a label
+  // Guard: don't strip if colon is inside email or the value itself starts with a digit
   const colonIdx = str.indexOf(":");
-  if (colonIdx > 0 && colonIdx < 50) {
+  if (colonIdx > 0 && colonIdx < 55) {
     const before = str.substring(0, colonIdx);
     const after  = str.substring(colonIdx + 1).trim();
-    // Only strip if the part before colon has no digits and no @ (so not a time or email)
+    // Only strip if before-colon has no digits/@ and after is non-empty
     if (!/[\d@]/.test(before) && after.length > 0) {
-      return after.trim();
+      str = after.trim();
     }
   }
-  return str.trim();
+
+  // Remove trailing dots, commas, semicolons
+  str = str.replace(/[.,;]+$/, "").trim();
+
+  return str;
 }
 
 /* ── Main Parser ── */
@@ -422,6 +431,14 @@ function parseData() {
       return;
     }
 
+    // ── AADHAR — exactly 12 digits — check BEFORE phone to avoid misclassification ──
+    const aadharClean = line.replace(/[\s\-]/g, "");
+    if (/^\d{12}$/.test(aadharClean)) {
+      c.aadhar = aadharClean;
+      log.push({ type: "ok", msg: `Aadhar → ${aadharClean}` });
+      return;
+    }
+
     // ── PHONE — 10 digits Indian mobile, optionally prefixed with +91 or 91 ──
     const phoneClean = line.replace(/[\s\-().+]/g, "");
     if (/^(91)?[6-9]\d{9}$/.test(phoneClean)) {
@@ -433,14 +450,6 @@ function parseData() {
         c.altPhone = p10;
         log.push({ type: "ok", msg: `Alt Phone → ${p10}` });
       }
-      return;
-    }
-
-    // ── AADHAR — exactly 12 digits (with or without spaces) ──
-    const aadharClean = line.replace(/\s/g, "");
-    if (/^\d{12}$/.test(aadharClean)) {
-      c.aadhar = aadharClean;
-      log.push({ type: "ok", msg: `Aadhar → ${aadharClean}` });
       return;
     }
 
