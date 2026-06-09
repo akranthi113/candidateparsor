@@ -1,311 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Candidate Parser</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Candidate Parser</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f0f4ff;
+  --surface: #ffffff;
+  --surface2: #f7f9ff;
+  --border: #dde3f5;
+  --accent: #4361ee;
+  --accent-light: #eef1fd;
+  --accent2: #0a9396;
+  --accent2-light: #e0f4f4;
+  --text: #1a1f36;
+  --text-mid: #4a5175;
+  --muted: #8f97b8;
+  --danger: #e63946;
+  --warn: #f4a261;
+  --radius: 16px;
+  --shadow: 0 2px 12px rgba(67,97,238,0.08), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-hover: 0 8px 28px rgba(67,97,238,0.14), 0 2px 8px rgba(0,0,0,0.06);
+}
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(67,97,238,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(10,147,150,0.06) 0%, transparent 60%);
+  background-attachment: fixed;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 40px 20px 60px;
+}
+header { text-align: center; margin-bottom: 44px; }
+.header-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-light); color: var(--accent);
+  font-size: 11.5px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; padding: 5px 14px; border-radius: 100px; margin-bottom: 14px;
+}
+header h1 {
+  font-family: 'Lora', serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 600; color: var(--text); letter-spacing: -0.5px; line-height: 1.2;
+}
+header h1 span { color: var(--accent); }
+header p { color: var(--muted); font-size: 14px; margin-top: 10px; font-weight: 500; }
 
-    :root {
-      --bg: #f0f4ff;
-      --surface: #ffffff;
-      --surface2: #f7f9ff;
-      --border: #dde3f5;
-      --accent: #4361ee;
-      --accent-light: #eef1fd;
-      --accent2: #0a9396;
-      --accent2-light: #e0f4f4;
-      --text: #1a1f36;
-      --text-mid: #4a5175;
-      --muted: #8f97b8;
-      --danger: #e63946;
-      --warn: #f4a261;
-      --radius: 16px;
-      --shadow: 0 2px 12px rgba(67,97,238,0.08), 0 1px 3px rgba(0,0,0,0.04);
-      --shadow-hover: 0 8px 28px rgba(67,97,238,0.14), 0 2px 8px rgba(0,0,0,0.06);
-    }
 
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background: var(--bg);
-      background-image:
-        radial-gradient(ellipse at 20% 0%, rgba(67,97,238,0.07) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 100%, rgba(10,147,150,0.06) 0%, transparent 60%);
-      background-attachment: fixed;
-      color: var(--text);
-      min-height: 100vh;
-      padding: 40px 20px 60px;
-    }
 
-    header {
-      text-align: center;
-      margin-bottom: 44px;
-    }
+.container {
+  max-width: 1180px; margin: auto;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 28px; align-items: start;
+}
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow);
+  transition: box-shadow 0.25s;
+}
+.card:hover { box-shadow: var(--shadow-hover); }
+.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.card-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+}
+.card-icon.blue { background: var(--accent-light); }
+.card-icon.teal { background: var(--accent2-light); }
+.card h2 { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
 
-    .header-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--accent-light);
-      color: var(--accent);
-      font-size: 11.5px;
-      font-weight: 700;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      padding: 5px 14px;
-      border-radius: 100px;
-      margin-bottom: 14px;
-    }
+textarea {
+  width: 100%; height: 490px; padding: 16px 18px;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 12px; resize: vertical;
+  font-size: 13.5px; font-family: 'Plus Jakarta Sans', sans-serif;
+  line-height: 1.75; color: var(--text);
+  transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+}
+textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(67,97,238,0.1); }
+textarea::placeholder { color: var(--muted); font-style: italic; }
 
-    header h1 {
-      font-family: 'Lora', serif;
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 600;
-      color: var(--text);
-      letter-spacing: -0.5px;
-      line-height: 1.2;
-    }
+.btn-row { display: flex; gap: 10px; margin-top: 16px; }
+button {
+  padding: 12px 22px; border: none; border-radius: 10px; cursor: pointer;
+  font-size: 13.5px; font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700; letter-spacing: 0.2px; transition: all 0.18s;
+}
+button:active { transform: scale(0.97); }
 
-    header h1 span { color: var(--accent); }
+.parse-btn {
+  background: var(--accent); color: #fff; flex: 1;
+  box-shadow: 0 4px 14px rgba(67,97,238,0.3);
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.parse-btn:hover { background: #3451d1; box-shadow: 0 6px 20px rgba(67,97,238,0.4); transform: translateY(-1px); }
+.parse-btn:disabled { background: #a0aec0; box-shadow: none; cursor: not-allowed; transform: none; }
 
-    header p {
-      color: var(--muted);
-      font-size: 14px;
-      margin-top: 10px;
-      font-weight: 500;
-    }
+.clear-btn {
+  background: var(--surface2); color: var(--muted);
+  border: 1.5px solid var(--border); padding: 12px 18px;
+}
+.clear-btn:hover { background: #fff0f0; border-color: #f0b4b4; color: var(--danger); }
 
-    .container {
-      max-width: 1180px;
-      margin: auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 28px;
-      align-items: start;
-    }
+.copy-btn {
+  width: 100%; background: var(--accent2); color: #fff;
+  margin-top: 16px; box-shadow: 0 4px 14px rgba(10,147,150,0.25);
+}
+.copy-btn:hover { background: #087a7d; box-shadow: 0 6px 20px rgba(10,147,150,0.35); transform: translateY(-1px); }
 
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px;
-      box-shadow: var(--shadow);
-      transition: box-shadow 0.25s;
-    }
+.output-box {
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 20px 22px;
+  min-height: 490px; overflow-y: auto;
+  color: var(--text); font-size: 13.5px; line-height: 2;
+}
+.output-box .placeholder {
+  color: var(--muted); font-style: italic; font-size: 14px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center; height: 100%; min-height: 420px; gap: 10px;
+}
+.placeholder-icon { font-size: 40px; opacity: 0.35; }
 
-    .card:hover { box-shadow: var(--shadow-hover); }
+.output-intro { font-weight: 700; color: var(--accent); margin-bottom: 10px; font-size: 13.5px; }
 
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 18px;
-    }
+.field-line {
+  display: block; padding: 3px 0;
+  border-bottom: 1px solid #f0f2fa;
+  animation: fadeUp 0.22s ease both;
+}
+.field-key { font-weight: 700; color: var(--text-mid); }
+.field-val { font-weight: 500; color: var(--text); }
+.field-val.empty { color: var(--muted); }
 
-    .card-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 17px;
-      flex-shrink: 0;
-    }
+/* Spinning loader */
+.spinner {
+  width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-    .card-icon.blue { background: var(--accent-light); }
-    .card-icon.teal { background: var(--accent2-light); }
+/* Parse log */
+#parseLog {
+  margin-top: 14px; font-size: 11.5px; color: var(--muted);
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; max-height: 120px;
+  overflow-y: auto; display: none; line-height: 1.7;
+}
+#parseLog.visible { display: block; }
+#parseLog strong { color: var(--text-mid); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; }
+#parseLog .log-warn { color: var(--warn); }
+#parseLog .log-ok   { color: var(--accent2); }
+#parseLog .log-info { color: var(--accent); }
 
-    .card h2 {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -0.2px;
-    }
-
-    textarea {
-      width: 100%;
-      height: 490px;
-      padding: 16px 18px;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      resize: vertical;
-      font-size: 13.5px;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      line-height: 1.75;
-      color: var(--text);
-      transition: border-color 0.2s, box-shadow 0.2s;
-      outline: none;
-    }
-
-    textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(67,97,238,0.1);
-    }
-
-    textarea::placeholder { color: var(--muted); font-style: italic; }
-
-    .btn-row {
-      display: flex;
-      gap: 10px;
-      margin-top: 16px;
-    }
-
-    button {
-      padding: 12px 22px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 13.5px;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      transition: all 0.18s;
-    }
-
-    button:active { transform: scale(0.97); }
-
-    .parse-btn {
-      background: var(--accent);
-      color: #fff;
-      flex: 1;
-      box-shadow: 0 4px 14px rgba(67,97,238,0.3);
-    }
-
-    .parse-btn:hover {
-      background: #3451d1;
-      box-shadow: 0 6px 20px rgba(67,97,238,0.4);
-      transform: translateY(-1px);
-    }
-
-    .clear-btn {
-      background: var(--surface2);
-      color: var(--muted);
-      border: 1.5px solid var(--border);
-      padding: 12px 18px;
-    }
-
-    .clear-btn:hover {
-      background: #fff0f0;
-      border-color: #f0b4b4;
-      color: var(--danger);
-    }
-
-    .copy-btn {
-      width: 100%;
-      background: var(--accent2);
-      color: #fff;
-      margin-top: 16px;
-      box-shadow: 0 4px 14px rgba(10,147,150,0.25);
-    }
-
-    .copy-btn:hover {
-      background: #087a7d;
-      box-shadow: 0 6px 20px rgba(10,147,150,0.35);
-      transform: translateY(-1px);
-    }
-
-    .output-box {
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      padding: 20px 22px;
-      min-height: 490px;
-      overflow-y: auto;
-      color: var(--text);
-      font-size: 13.5px;
-      line-height: 2;
-    }
-
-    .output-box .placeholder {
-      color: var(--muted);
-      font-style: italic;
-      font-size: 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      height: 100%;
-      min-height: 420px;
-      gap: 10px;
-    }
-
-    .placeholder-icon {
-      font-size: 40px;
-      opacity: 0.35;
-    }
-
-    /* Output lines styled to exactly match the required format */
-    .output-lines {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 13.5px;
-      line-height: 2.1;
-      color: var(--text);
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .output-intro {
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 10px;
-      font-size: 13.5px;
-    }
-
-    .field-line {
-      display: block;
-      padding: 3px 0;
-      border-bottom: 1px solid #f0f2fa;
-      animation: fadeUp 0.22s ease both;
-    }
-
-    .field-key {
-      font-weight: 700;
-      color: var(--text-mid);
-    }
-
-    .field-val {
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .field-val.empty {
-      color: var(--muted);
-    }
-
-    #parseLog {
-      margin-top: 14px;
-      font-size: 11.5px;
-      color: var(--muted);
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 14px;
-      max-height: 120px;
-      overflow-y: auto;
-      display: none;
-      line-height: 1.7;
-    }
-
-    #parseLog.visible { display: block; }
-    #parseLog strong { color: var(--text-mid); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; }
-    #parseLog .log-warn { color: var(--warn); }
-    #parseLog .log-ok { color: var(--accent2); }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    @media(max-width: 860px) {
-      .container { grid-template-columns: 1fr; }
-      body { padding: 24px 14px 40px; }
-    }
-  </style>
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media(max-width: 860px) {
+  .container { grid-template-columns: 1fr; }
+  body { padding: 24px 14px 40px; }
+  .api-banner { flex-direction: column; align-items: flex-start; }
+}
+</style>
 </head>
 <body>
 
@@ -314,6 +179,7 @@
   <h1>Candidate <span>WhatsApp</span> Parser</h1>
   <p>Paste raw candidate data — get a clean, structured profile instantly.</p>
 </header>
+
 
 <div class="container">
 
@@ -324,7 +190,9 @@
     </div>
     <textarea id="inputText" placeholder="Paste candidate details here...&#10;&#10;Example:&#10;Rajesh Kumar&#10;Suresh Kumar&#10;9876543210&#10;rajesh@gmail.com&#10;15/08/1998&#10;Male&#10;Single&#10;123456789012&#10;MBA&#10;Hyderabad, Telangana 500001&#10;English, Hindi&#10;2 years experience in sales&#10;Immediate joining"></textarea>
     <div class="btn-row">
-      <button class="parse-btn" onclick="parseData()">⚡ Parse Candidate</button>
+      <button class="parse-btn" id="parseBtn" onclick="handleParse()">
+        <span id="parseBtnText">⚡ Parse Candidate</span>
+      </button>
       <button class="clear-btn" onclick="clearAll()">✕ Clear</button>
     </div>
     <div id="parseLog"></div>
@@ -348,226 +216,55 @@
 
 <script>
 
-/* ── Helpers ── */
+/* ═══════════════════════════════════════════
+   🔑 PASTE YOUR GEMINI API KEY HERE
+═══════════════════════════════════════════ */
+const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
+
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
 function properCase(str) {
   return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// Strip WhatsApp bold markers, numbered prefixes, label prefixes, trailing punctuation
 function stripLabel(str) {
-  // Remove asterisks (WhatsApp bold)
   str = str.replace(/\*/g, "").trim();
-
-  // Remove numbered prefixes like "1-", "2.", "3)", "10-", "10." etc.
   str = str.replace(/^\d{1,2}[\.\-\)]\s*/, "").trim();
-
-  // Remove label prefix: anything before first colon that looks like a label
-  // Guard: don't strip if colon is inside email or the value itself starts with a digit
   const colonIdx = str.indexOf(":");
   if (colonIdx > 0 && colonIdx < 55) {
     const before = str.substring(0, colonIdx);
     const after  = str.substring(colonIdx + 1).trim();
-    // Only strip if before-colon has no digits/@ and after is non-empty
-    if (!/[\d@]/.test(before) && after.length > 0) {
-      str = after.trim();
-    }
+    if (!/[\d@]/.test(before) && after.length > 0) str = after.trim();
   }
-
-  // Remove trailing dots, commas, semicolons
   str = str.replace(/[.,;]+$/, "").trim();
-
   return str;
 }
 
-/* ── Main Parser ── */
-function parseData() {
-  const raw = document.getElementById("inputText").value.trim();
-  const log = [];
 
-  if (!raw) {
-    alert("Please paste candidate data first.");
-    return;
-  }
 
-  const c = {
-    name: "",
-    fatherName: "",
-    phone: "",
-    altPhone: "",
-    email: "",
-    dob: "",
-    gender: "",
-    marital: "",
-    aadhar: "",
-    qualification: "",
-    address: "",
-    languages: "",
-    experience: "",
-    joining: "",
-    resume: ""
-  };
+/* ═══════════════════════════════════════════
+   RENDER OUTPUT
+═══════════════════════════════════════════ */
+const FIELD_KEYS = [
+  { key: "Name",                              prop: "name" },
+  { key: "Father's Name",                     prop: "fatherName" },
+  { key: "Phone Number",                      prop: "phone" },
+  { key: "Alternative Number",                prop: "altPhone" },
+  { key: "Email ID",                          prop: "email" },
+  { key: "Date of Birth",                     prop: "dob" },
+  { key: "Gender",                            prop: "gender" },
+  { key: "Marital status",                    prop: "marital" },
+  { key: "Aadhar Number",                     prop: "aadhar" },
+  { key: "Highest Qualification",             prop: "qualification" },
+  { key: "Residential address with pincode",  prop: "address" },
+  { key: "Spoken Languages",                  prop: "languages" },
+  { key: "Experience",                        prop: "experience" },
+  { key: "How often will you be able to join",prop: "joining" },
+  { key: "Attach your resume",                prop: "" },
+];
 
-  // Split into lines
-  const lines = raw.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-
-  lines.forEach(rawLine => {
-
-    // ── SKIP instruction/question/attach lines ──
-    if (/attach|resume|\.pdf|\.doc|\.docx|upload|kindly fill|please note|fill in|how often will|will you be able/i.test(rawLine)) {
-      log.push({ type: "warn", msg: `Skipped → ${rawLine}` });
-      return;
-    }
-
-    // Strip label prefix and asterisks
-    const line = stripLabel(rawLine);
-    if (!line) return;
-    const lower = line.toLowerCase();
-
-    // ── EMAIL ──
-    const emailMatch = line.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
-    if (emailMatch) {
-      c.email = emailMatch[0].toLowerCase();
-      log.push({ type: "ok", msg: `Email → ${c.email}` });
-      return;
-    }
-
-    // ── AADHAR — exactly 12 digits — check BEFORE phone to avoid misclassification ──
-    const aadharClean = line.replace(/[\s\-]/g, "");
-    if (/^\d{12}$/.test(aadharClean)) {
-      c.aadhar = aadharClean;
-      log.push({ type: "ok", msg: `Aadhar → ${aadharClean}` });
-      return;
-    }
-
-    // ── PHONE — 10 digits Indian mobile, optionally prefixed with +91 or 91 ──
-    const phoneClean = line.replace(/[\s\-().+]/g, "");
-    if (/^(91)?[6-9]\d{9}$/.test(phoneClean)) {
-      const p10 = phoneClean.slice(-10);
-      if (!c.phone) {
-        c.phone = p10;
-        log.push({ type: "ok", msg: `Phone → ${p10}` });
-      } else if (!c.altPhone && p10 !== c.phone) {
-        c.altPhone = p10;
-        log.push({ type: "ok", msg: `Alt Phone → ${p10}` });
-      }
-      return;
-    }
-
-    // ── DOB — dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy ──
-    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/.test(line)) {
-      c.dob = line.replace(/[-\.]/g, "/");
-      log.push({ type: "ok", msg: `DOB → ${c.dob}` });
-      return;
-    }
-
-    // ── GENDER ──
-    if (/^(male|female)$/i.test(line)) {
-      c.gender = properCase(line);
-      log.push({ type: "ok", msg: `Gender → ${c.gender}` });
-      return;
-    }
-
-    // ── MARITAL STATUS ──
-    if (/^(single|married|unmarried|divorced|widowed)$/i.test(line)) {
-      c.marital = properCase(line);
-      log.push({ type: "ok", msg: `Marital → ${c.marital}` });
-      return;
-    }
-
-    // ── JOINING / AVAILABILITY ──
-    if (/immediate|as soon|asap|notice period|available from|ready to join|can join|joining/i.test(lower)) {
-      c.joining = properCase(line);
-      log.push({ type: "ok", msg: `Joining → ${c.joining}` });
-      return;
-    }
-
-    // ── EXPERIENCE ──
-    if (
-      /\d+\s*(year|yr|month|mon)s?\s*(of\s*)?(experience|exp)?\b|\bfresher\b|no experience|^experience$/i.test(lower) ||
-      /\b(telecaller|bpo|sales|hr|recruiter|developer|engineer|analyst|manager|intern|executive|officer|associate)\b.*experience|experience.*\b(telecaller|bpo|sales|hr|recruiter|developer|engineer|analyst|manager|intern|executive)\b/i.test(lower)
-    ) {
-      if (!c.experience) {
-        c.experience = properCase(line);
-        log.push({ type: "ok", msg: `Experience → ${c.experience}` });
-      }
-      return;
-    }
-
-    // ── QUALIFICATION ──
-    if (
-      /\b(mba|pgdm|mca|msc|mtech|me|ma|mcom|mph|mphil|phd|doctorate|btech|be|bsc|bca|bba|bcom|ba|bfa|bed|bpharm|llb|mbbs)\b/i.test(line) ||
-      /\b(inter|intermediate|12th|10th|ssc|hsc|plus two|\+2|diploma|iti)\b/i.test(line) ||
-      /\b(bachelor|master|degree|graduate|post.?graduate|engineering|b\.tech|b\.sc|m\.sc)\b/i.test(line)
-    ) {
-      c.qualification = c.qualification
-        ? c.qualification + " | " + properCase(line)
-        : properCase(line);
-      log.push({ type: "ok", msg: `Qualification → ${properCase(line)}` });
-      return;
-    }
-
-    // ── LANGUAGES ──
-    if (/\b(english|hindi|urdu|telugu|tamil|kannada|malayalam|marathi|bengali|gujarati|punjabi|odia|oriya)\b/i.test(line)) {
-      c.languages = c.languages ? c.languages + ", " + line : properCase(line);
-      log.push({ type: "ok", msg: `Languages → ${line}` });
-      return;
-    }
-
-    // ── ADDRESS — PIN code OR city/state/address keywords OR commas ──
-    if (
-      /\b\d{6}\b/.test(line) ||
-      /\b(hyderabad|bangalore|bengaluru|chennai|mumbai|delhi|pune|kolkata|ahmedabad|jaipur|lucknow|noida|gurugram|gurgaon|vizag|visakhapatnam|warangal|karimnagar|nizamabad|secunderabad)\b/i.test(line) ||
-      /\b(telangana|andhra|ap|ts|maharashtra|karnataka|tamilnadu|tamil nadu|kerala|gujarat|rajasthan)\b/i.test(line) ||
-      /\b(h\.?no|flat|plot|door|street|road|nagar|colony|dist|district|mandal|village|sector|phase|block|pincode|pin)\b/i.test(line) ||
-      (line.includes(",") && line.length > 10 && !line.includes("@") && !/^\d+$/.test(line.replace(/,/g,"")))
-    ) {
-      c.address = c.address ? c.address + ", " + line : line;
-      log.push({ type: "ok", msg: `Address → ${line}` });
-      return;
-    }
-
-    // ── NAME / FATHER'S NAME ──
-    // Accept lines that are purely letters + spaces + dots (no digits, no special chars)
-    if (/^[a-zA-Z][a-zA-Z\s\.]{2,}$/.test(line) && line.split(/\s+/).length <= 5) {
-      if (!c.name) {
-        c.name = properCase(line);
-        log.push({ type: "ok", msg: `Name → ${c.name}` });
-      } else if (!c.fatherName) {
-        c.fatherName = properCase(line);
-        log.push({ type: "ok", msg: `Father Name → ${c.fatherName}` });
-      } else {
-        c.address = c.address ? c.address + ", " + properCase(line) : properCase(line);
-        log.push({ type: "warn", msg: `Extra name-like → address: ${line}` });
-      }
-      return;
-    }
-
-    // ── CATCH-ALL → address ──
-    if (line.length > 2) {
-      c.address = c.address ? c.address + ", " + line : line;
-      log.push({ type: "warn", msg: `Catch-all → address: ${line}` });
-    }
-  });
-
-  // ── Render output in EXACT required format ──
-  const fields = [
-    { key: "Name",                              val: c.name },
-    { key: "Father's Name",                     val: c.fatherName },
-    { key: "Phone Number",                      val: c.phone },
-    { key: "Alternative Number",                val: c.altPhone },
-    { key: "Email ID",                          val: c.email },
-    { key: "Date of Birth",                     val: c.dob },
-    { key: "Gender",                            val: c.gender },
-    { key: "Marital status",                    val: c.marital },
-    { key: "Aadhar Number",                     val: c.aadhar },
-    { key: "Highest Qualification",             val: c.qualification },
-    { key: "Residential address with pincode",  val: c.address },
-    { key: "Spoken Languages",                  val: c.languages },
-    { key: "Experience",                        val: c.experience },
-    { key: "How often will you be able to join",val: c.joining },
-    { key: "Attach your resume",                val: "" },
-  ];
-
+function renderOutput(c, logLines, method) {
   const box = document.getElementById("parsedOutput");
   box.innerHTML = "";
 
@@ -576,43 +273,286 @@ function parseData() {
   intro.textContent = "Kindly fill this and send me back";
   box.appendChild(intro);
 
-  fields.forEach((f, i) => {
+  // Method badge
+  const badge = document.createElement("div");
+  badge.style.cssText = `font-size:11px;font-weight:700;margin-bottom:10px;padding:3px 10px;border-radius:20px;display:inline-block;${
+    method === "gemini"
+      ? "background:#d1fae5;color:#065f46;"
+      : "background:#e0e7ff;color:#3730a3;"
+  }`;
+  badge.textContent = method === "gemini" ? "✦ Parsed by Gemini AI" : "⚙ Parsed by rule-based engine";
+  box.appendChild(badge);
+
+  FIELD_KEYS.forEach((f, i) => {
     const line = document.createElement("span");
     line.className = "field-line";
     line.style.animationDelay = (i * 30) + "ms";
 
-    const key  = document.createElement("span");
+    const key = document.createElement("span");
     key.className = "field-key";
     key.textContent = f.key + ": ";
 
-    const val  = document.createElement("span");
-    val.className = f.val ? "field-val" : "field-val empty";
-    val.textContent = f.val || "";
+    const val = document.createElement("span");
+    const v = f.prop ? (c[f.prop] || "") : "";
+    val.className = v ? "field-val" : "field-val empty";
+    val.textContent = v;
 
     line.appendChild(key);
     line.appendChild(val);
     box.appendChild(line);
   });
 
-  // ── Parse log ──
+  // Log
   const logEl = document.getElementById("parseLog");
-  logEl.innerHTML = "<strong>Parse Log:</strong><br>" +
-    log.map(l => `<span class="log-${l.type}">▸ ${l.msg}</span>`).join("<br>");
+  logEl.innerHTML = `<strong>Parse Log (${method}):</strong><br>` +
+    logLines.map(l => `<span class="log-${l.type}">▸ ${l.msg}</span>`).join("<br>");
   logEl.classList.add("visible");
 }
 
-/* ── Copy ── */
+/* ═══════════════════════════════════════════
+   GEMINI PARSING
+═══════════════════════════════════════════ */
+async function parseWithGemini(raw, apiKey) {
+  const prompt = `You are an HR data extraction assistant. Extract candidate details from the text below and return ONLY a valid JSON object with exactly these keys (use empty string "" if not found):
+
+{
+  "name": "",
+  "fatherName": "",
+  "phone": "",
+  "altPhone": "",
+  "email": "",
+  "dob": "",
+  "gender": "",
+  "marital": "",
+  "aadhar": "",
+  "qualification": "",
+  "address": "",
+  "languages": "",
+  "experience": "",
+  "joining": ""
+}
+
+Rules:
+- name: candidate's own full name only (not father's)
+- fatherName: father's name only
+- phone: primary 10-digit mobile number (digits only, no spaces)
+- altPhone: second/alternative 10-digit mobile number (digits only, no spaces)
+- email: email address in lowercase
+- dob: date of birth in DD-MM-YYYY format
+- gender: Male / Female / Other
+- marital: Single / Married / Divorced / Widowed or as stated
+- aadhar: 12-digit Aadhaar number (digits only)
+- qualification: highest educational qualification
+- address: full residential address with pincode
+- languages: spoken languages comma separated
+- experience: work experience summary
+- joining: joining availability / notice period
+
+Return ONLY the JSON. No explanation. No markdown. No extra text.
+
+Candidate Data:
+${raw}`;
+
+  // Try models in order of preference
+  const models = [
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-2.0-flash",
+    "gemini-pro"
+  ];
+
+  let lastError = "";
+
+  for (const model of models) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 1024 }
+          })
+        }
+      );
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        lastError = errBody?.error?.message || `HTTP ${res.status}`;
+        // If 404 (model not found), try next model
+        if (res.status === 404) continue;
+        // Any other error (401 bad key, 429 quota) — throw immediately
+        throw new Error(`[${model}] ${lastError}`);
+      }
+
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const clean = text.replace(/```json|```/gi, "").trim();
+      const parsed = JSON.parse(clean);
+      // Tag which model actually worked
+      parsed._modelUsed = model;
+      return parsed;
+
+    } catch (e) {
+      // If it's a model-not-found continue, else rethrow
+      if (e.message && e.message.includes("404")) { lastError = e.message; continue; }
+      throw e;
+    }
+  }
+
+  throw new Error(`All models failed. Last error: ${lastError}`);
+}
+
+/* ═══════════════════════════════════════════
+   RULE-BASED PARSING (original, unchanged)
+═══════════════════════════════════════════ */
+function parseWithRules(raw) {
+  const log = [];
+  const c = { name:"", fatherName:"", phone:"", altPhone:"", email:"", dob:"", gender:"", marital:"", aadhar:"", qualification:"", address:"", languages:"", experience:"", joining:"" };
+  const lines = raw.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+  lines.forEach(rawLine => {
+    if (/attach|resume|\.pdf|\.doc|\.docx|upload|kindly fill|please note|fill in|how often will|will you be able/i.test(rawLine)) {
+      log.push({ type: "warn", msg: `Skipped → ${rawLine}` }); return;
+    }
+    const line = stripLabel(rawLine);
+    if (!line) return;
+    const lower = line.toLowerCase();
+
+    const emailMatch = line.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch) { c.email = emailMatch[0].toLowerCase(); log.push({ type:"ok", msg:`Email → ${c.email}` }); return; }
+
+    const aadharClean = line.replace(/[\s\-]/g, "");
+    if (/^\d{12}$/.test(aadharClean)) { c.aadhar = aadharClean; log.push({ type:"ok", msg:`Aadhar → ${aadharClean}` }); return; }
+
+    const phoneClean = line.replace(/[\s\-().+]/g, "");
+    if (/^(91)?[6-9]\d{9}$/.test(phoneClean)) {
+      const p10 = phoneClean.slice(-10);
+      if (!c.phone) { c.phone = p10; log.push({ type:"ok", msg:`Phone → ${p10}` }); }
+      else if (!c.altPhone && p10 !== c.phone) { c.altPhone = p10; log.push({ type:"ok", msg:`Alt Phone → ${p10}` }); }
+      return;
+    }
+
+    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/.test(line)) {
+      // Convert to DD-MM-YYYY
+      const parts = line.split(/[\/\-\.]/);
+      c.dob = `${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}-${parts[2]}`;
+      log.push({ type:"ok", msg:`DOB → ${c.dob}` }); return;
+    }
+
+    if (/^(male|female)$/i.test(line)) { c.gender = properCase(line); log.push({ type:"ok", msg:`Gender → ${c.gender}` }); return; }
+    if (/^(single|married|unmarried|divorced|widowed)$/i.test(line)) { c.marital = properCase(line); log.push({ type:"ok", msg:`Marital → ${c.marital}` }); return; }
+
+    if (/immediate|as soon|asap|notice period|available from|ready to join|can join|joining/i.test(lower)) {
+      c.joining = properCase(line); log.push({ type:"ok", msg:`Joining → ${c.joining}` }); return;
+    }
+
+    if (
+      /\d+\s*(year|yr|month|mon)s?\s*(of\s*)?(experience|exp)?\b|\bfresher\b|no experience/i.test(lower) ||
+      /\b(telecaller|bpo|sales|hr|recruiter|developer|engineer|analyst|manager|intern|executive|officer|associate)\b.*experience|experience.*\b(telecaller|bpo|sales)\b/i.test(lower)
+    ) {
+      if (!c.experience) { c.experience = properCase(line); log.push({ type:"ok", msg:`Experience → ${c.experience}` }); }
+      return;
+    }
+
+    if (
+      /\b(mba|pgdm|mca|msc|mtech|me|ma|mcom|btech|be|bsc|bca|bba|bcom|ba|diploma|iti|mbbs|llb)\b/i.test(line) ||
+      /\b(inter|intermediate|12th|10th|ssc|hsc|plus two|\+2)\b/i.test(line) ||
+      /\b(bachelor|master|degree|graduate|post.?graduate|engineering)\b/i.test(line)
+    ) {
+      c.qualification = c.qualification ? c.qualification + " | " + properCase(line) : properCase(line);
+      log.push({ type:"ok", msg:`Qualification → ${properCase(line)}` }); return;
+    }
+
+    if (/\b(english|hindi|urdu|telugu|tamil|kannada|malayalam|marathi|bengali|gujarati|punjabi|odia)\b/i.test(line)) {
+      c.languages = c.languages ? c.languages + ", " + line : properCase(line);
+      log.push({ type:"ok", msg:`Languages → ${line}` }); return;
+    }
+
+    if (
+      /\b\d{6}\b/.test(line) ||
+      /\b(hyderabad|bangalore|bengaluru|chennai|mumbai|delhi|pune|kolkata|vizag|warangal|secunderabad)\b/i.test(line) ||
+      /\b(telangana|andhra|ap|ts|maharashtra|karnataka|tamilnadu|tamil nadu|kerala|gujarat|rajasthan)\b/i.test(line) ||
+      /\b(h\.?no|flat|plot|door|street|road|nagar|colony|dist|district|mandal|village|sector|phase|pincode|pin)\b/i.test(line) ||
+      (line.includes(",") && line.length > 10 && !line.includes("@") && !/^\d+$/.test(line.replace(/,/g,"")))
+    ) {
+      c.address = c.address ? c.address + ", " + line : line;
+      log.push({ type:"ok", msg:`Address → ${line}` }); return;
+    }
+
+    if (/^[a-zA-Z][a-zA-Z\s\.]{2,}$/.test(line) && line.split(/\s+/).length <= 5) {
+      if (!c.name) { c.name = properCase(line); log.push({ type:"ok", msg:`Name → ${c.name}` }); }
+      else if (!c.fatherName) { c.fatherName = properCase(line); log.push({ type:"ok", msg:`Father Name → ${c.fatherName}` }); }
+      else { c.address = c.address ? c.address + ", " + properCase(line) : properCase(line); log.push({ type:"warn", msg:`Extra name → address: ${line}` }); }
+      return;
+    }
+
+    if (line.length > 2) {
+      c.address = c.address ? c.address + ", " + line : line;
+      log.push({ type:"warn", msg:`Catch-all → address: ${line}` });
+    }
+  });
+
+  return { c, log };
+}
+
+/* ═══════════════════════════════════════════
+   MAIN HANDLER
+═══════════════════════════════════════════ */
+async function handleParse() {
+  const raw = document.getElementById("inputText").value.trim();
+  if (!raw) { alert("Please paste candidate data first."); return; }
+
+  const apiKey = GEMINI_API_KEY.trim();
+  const btn    = document.getElementById("parseBtn");
+  const btnTxt = document.getElementById("parseBtnText");
+
+  // If API key is set → try Gemini first
+  if (apiKey && apiKey !== "YOUR_GEMINI_API_KEY_HERE" && apiKey.length > 10) {
+    btn.disabled = true;
+    btnTxt.innerHTML = `<span class="spinner"></span> Gemini AI parsing...`;
+
+    try {
+      const result = await parseWithGemini(raw, apiKey);
+
+      if (typeof result !== "object" || !result.name) throw new Error("Unexpected response from Gemini");
+
+      const modelUsed = result._modelUsed || "gemini";
+      delete result._modelUsed;
+      const log = [{ type:"info", msg:`✦ Gemini AI parsed successfully using ${modelUsed}` }];
+      Object.entries(result).forEach(([k, v]) => { if (v) log.push({ type:"ok", msg:`${k} → ${v}` }); });
+
+      renderOutput(result, log, "gemini");
+
+    } catch (err) {
+      const { c, log } = parseWithRules(raw);
+      log.unshift({ type:"warn", msg:`Gemini error: ${err.message}` });
+      log.unshift({ type:"warn", msg:`Falling back to rule-based parser` });
+      renderOutput(c, log, "rules");
+
+    } finally {
+      btn.disabled = false;
+      btnTxt.textContent = "⚡ Parse Candidate";
+    }
+
+  } else {
+    // No valid API key → rule-based only
+    const { c, log } = parseWithRules(raw);
+    log.unshift({ type:"info", msg:"No API key — using rule-based parser" });
+    renderOutput(c, log, "rules");
+  }
+}
+
+/* ═══════════════════════════════════════════
+   COPY OUTPUT
+═══════════════════════════════════════════ */
 function copyOutput() {
   const box = document.getElementById("parsedOutput");
   const lines = box.querySelectorAll(".field-line");
+  if (!lines.length) { alert("Nothing to copy. Please parse a candidate first."); return; }
 
-  if (!lines.length) {
-    alert("Nothing to copy. Please parse a candidate first.");
-    return;
-  }
-
-  const intro = "Kindly fill this and send me back\n";
-  let text = intro;
+  let text = "Kindly fill this and send me back\n";
   lines.forEach(line => {
     const k = line.querySelector(".field-key");
     const v = line.querySelector(".field-val");
@@ -620,9 +560,7 @@ function copyOutput() {
   });
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text.trim())
-      .then(() => showCopied())
-      .catch(() => fallbackCopy(text.trim()));
+    navigator.clipboard.writeText(text.trim()).then(showCopied).catch(() => fallbackCopy(text.trim()));
   } else {
     fallbackCopy(text.trim());
   }
@@ -630,10 +568,8 @@ function copyOutput() {
 
 function fallbackCopy(text) {
   const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none;";
-  document.body.appendChild(ta);
-  ta.focus(); ta.select();
+  ta.value = text; ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none;";
+  document.body.appendChild(ta); ta.focus(); ta.select();
   try { document.execCommand("copy"); showCopied(); }
   catch(e) { alert("Copy failed. Please select the text manually."); }
   document.body.removeChild(ta);
@@ -642,19 +578,16 @@ function fallbackCopy(text) {
 function showCopied() {
   const btn = document.querySelector(".copy-btn");
   const orig = btn.textContent;
-  btn.textContent = "✅ Copied!";
-  btn.style.background = "#059669";
+  btn.textContent = "✅ Copied!"; btn.style.background = "#059669";
   setTimeout(() => { btn.textContent = orig; btn.style.background = ""; }, 2000);
 }
 
-/* ── Clear ── */
 function clearAll() {
   document.getElementById("inputText").value = "";
-  const box = document.getElementById("parsedOutput");
-  box.innerHTML = '<div class="placeholder"><div class="placeholder-icon">📄</div><div>Paste candidate data on the left<br>and click <strong>Parse Candidate</strong></div></div>';
+  document.getElementById("parsedOutput").innerHTML =
+    '<div class="placeholder"><div class="placeholder-icon">📄</div><div>Paste candidate data on the left<br>and click <strong>Parse Candidate</strong></div></div>';
   const logEl = document.getElementById("parseLog");
-  logEl.innerHTML = "";
-  logEl.classList.remove("visible");
+  logEl.innerHTML = ""; logEl.classList.remove("visible");
 }
 </script>
 </body>
