@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Candidate Parser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -22,21 +24,43 @@
     --muted: #8f97b8;
     --danger: #e63946;
     --warn: #f4a261;
+    --success: #059669;
     --radius: 16px;
     --shadow: 0 2px 12px rgba(67,97,238,0.08), 0 1px 3px rgba(0,0,0,0.04);
     --shadow-hover: 0 8px 28px rgba(67,97,238,0.14), 0 2px 8px rgba(0,0,0,0.06);
   }
 
+  /* FIX 1: background-attachment:fixed removed — replaced with pseudo-element for GPU-safe gradient */
   body {
     font-family: 'Plus Jakarta Sans', sans-serif;
     background: var(--bg);
-    background-image:
-      radial-gradient(ellipse at 20% 0%, rgba(67,97,238,0.07) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 100%, rgba(10,147,150,0.06) 0%, transparent 60%);
-    background-attachment: fixed;
     color: var(--text);
     min-height: 100vh;
     padding: 40px 20px 60px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(67,97,238,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(10,147,150,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+    will-change: transform; /* GPU layer hint */
+  }
+
+  body > * { position: relative; z-index: 1; }
+
+  /* REDUCED MOTION SUPPORT */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   header {
@@ -78,7 +102,7 @@
   }
 
   .container {
-    max-width: 1180px;
+    max-width: 1220px;
     margin: auto;
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -146,7 +170,25 @@
     box-shadow: 0 0 0 3px rgba(67,97,238,0.1);
   }
 
+  /* Keyboard focus for buttons */
+  button:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   textarea::placeholder { color: var(--muted); font-style: italic; }
+
+  /* FIX: Input size warning */
+  .input-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .input-meta .warn-limit { color: var(--warn); font-weight: 600; }
 
   .btn-row {
     display: flex;
@@ -163,7 +205,7 @@
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 700;
     letter-spacing: 0.2px;
-    transition: all 0.18s;
+    transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
   }
 
   button:active { transform: scale(0.97); }
@@ -179,6 +221,12 @@
     background: #3451d1;
     box-shadow: 0 6px 20px rgba(67,97,238,0.4);
     transform: translateY(-1px);
+  }
+
+  .parse-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
   }
 
   .clear-btn {
@@ -246,25 +294,135 @@
     font-size: 13.5px;
   }
 
+  /* ── Field row ── */
   .field-line {
-    display: block;
-    padding: 3px 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
     border-bottom: 1px solid #f0f2fa;
     animation: fadeUp 0.22s ease both;
+    position: relative;
+  }
+
+  .field-line:hover .edit-btn { opacity: 1; }
+
+  .field-main {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 6px 6px 6px 0;
+    flex-wrap: wrap;
+    min-width: 0;
   }
 
   .field-key {
     font-weight: 700;
     color: var(--text-mid);
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 13px;
   }
 
   .field-val {
     font-weight: 500;
     color: var(--text);
+    word-break: break-word;
+    font-size: 13.5px;
   }
 
   .field-val.empty {
     color: var(--muted);
+    font-style: italic;
+    font-size: 12.5px;
+  }
+
+  /* Confidence dot — tiny coloured circle beside the key label */
+  .conf-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-left: 2px;
+    margin-bottom: 1px;
+    vertical-align: middle;
+    flex-shrink: 0;
+    cursor: help;
+    position: relative;
+  }
+  .conf-dot.high { background: #22c55e; }
+  .conf-dot.med  { background: #f59e0b; }
+  .conf-dot.low  { background: #ef4444; }
+
+  /* Edit pencil button — right side, appears on row hover */
+  .edit-btn {
+    opacity: 0;
+    background: var(--accent-light);
+    color: var(--accent);
+    border: none;
+    border-radius: 7px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: center;
+    margin: 0 0 0 6px;
+  }
+  .edit-btn:hover { background: var(--accent); color: #fff; }
+  .edit-btn:focus-visible { opacity: 1; outline: 2px solid var(--accent); }
+
+  /* Inline edit input */
+  .field-edit-input {
+    flex: 1;
+    min-width: 60px;
+    font-size: 13.5px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 500;
+    color: var(--text);
+    background: #fff;
+    border: 1.5px solid var(--accent);
+    border-radius: 7px;
+    padding: 3px 8px;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(67,97,238,0.1);
+  }
+
+  .save-btn {
+    opacity: 1 !important;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 6px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .save-btn:hover { background: #3451d1; }
+
+  /* Field contamination warning */
+  .field-warn {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--warn);
+    padding: 2px 0 4px;
+    font-weight: 600;
+  }
+
+  /* Tiny "edited" tag shown after manual edit */
+  .edited-mark {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-left: 4px;
+    flex-shrink: 0;
   }
 
   #parseLog {
@@ -275,7 +433,7 @@
     border: 1.5px solid var(--border);
     border-radius: 10px;
     padding: 10px 14px;
-    max-height: 120px;
+    max-height: 140px;
     overflow-y: auto;
     display: none;
     line-height: 1.7;
@@ -285,6 +443,18 @@
   #parseLog strong { color: var(--text-mid); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; }
   #parseLog .log-warn { color: var(--warn); }
   #parseLog .log-ok   { color: var(--accent2); }
+  #parseLog .log-err  { color: var(--danger); }
+
+  /* FIX: Performance indicator */
+  .perf-bar {
+    display: none;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .perf-bar.visible { display: block; }
 
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(8px); }
@@ -294,6 +464,33 @@
   @media(max-width: 860px) {
     .container { grid-template-columns: 1fr; }
     body { padding: 24px 14px 40px; }
+  }
+
+  /* Spinner for parse button */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Multilingual name support banner */
+  .multilingual-note {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--accent-light);
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin-top: 10px;
+    font-weight: 500;
   }
 </style>
 </head>
@@ -312,12 +509,27 @@
       <div class="card-icon blue">📋</div>
       <h2>Paste Candidate Data</h2>
     </div>
-    <textarea id="inputText" placeholder="Paste candidate details here...&#10;&#10;Example:&#10;Rajesh Kumar&#10;Suresh Kumar&#10;9876543210&#10;rajesh@gmail.com&#10;15/08/1998&#10;Male&#10;Single&#10;123456789012&#10;MBA&#10;Hyderabad, Telangana 500001&#10;English, Hindi&#10;2 years experience in sales&#10;Immediate joining"></textarea>
-    <div class="btn-row">
-      <button class="parse-btn" onclick="parseData()">⚡ Parse Candidate</button>
-      <button class="clear-btn" onclick="clearAll()">✕ Clear</button>
+    <textarea id="inputText"
+      placeholder="Paste candidate details here...&#10;&#10;Example:&#10;Rajesh Kumar&#10;Suresh Kumar&#10;9876543210&#10;rajesh@gmail.com&#10;15/08/1998&#10;Male&#10;Single&#10;123456789012&#10;MBA&#10;Hyderabad, Telangana 500001&#10;English, Hindi&#10;2 years experience in sales&#10;Immediate joining"
+      oninput="onInputChange()"
+      aria-label="Candidate raw data input"></textarea>
+
+    <div class="input-meta">
+      <span id="lineCount">0 lines</span>
+      <span id="limitWarn"></span>
     </div>
-    <div id="parseLog"></div>
+
+    <div class="btn-row">
+      <button class="parse-btn" id="parseBtn" onclick="parseData()" aria-label="Parse candidate data">⚡ Parse Candidate</button>
+      <button class="clear-btn" onclick="clearAll()" aria-label="Clear input and output">✕ Clear</button>
+    </div>
+
+    <div class="multilingual-note">
+      💡 Supports Telugu, Hindi & other Indian names (Unicode-aware)
+    </div>
+
+    <div id="parseLog" role="log" aria-live="polite"></div>
+    <div class="perf-bar" id="perfBar"></div>
   </div>
 
   <div class="card">
@@ -325,27 +537,89 @@
       <div class="card-icon teal">👤</div>
       <h2>Formatted Candidate Profile</h2>
     </div>
-    <div id="parsedOutput" class="output-box">
+    <div id="parsedOutput" class="output-box" role="region" aria-label="Parsed candidate profile">
       <div class="placeholder">
         <div class="placeholder-icon">📄</div>
         <div>Paste candidate data on the left<br>and click <strong>Parse Candidate</strong></div>
       </div>
     </div>
-    <button class="copy-btn" onclick="copyOutput()">📋 Copy Profile</button>
+    <button class="copy-btn" onclick="copyOutput()" aria-label="Copy profile to clipboard">📋 Copy Profile</button>
   </div>
 
 </div>
 
 <script>
+/* ─────────────────────────────────────────────
+   FIX: Pre-compile all regex patterns ONCE
+   Prevents re-instantiation on every parse call
+───────────────────────────────────────────── */
+const RX = {
+  skip:        /attach|resume|\.pdf|\.doc|\.docx|upload|kindly fill|please note|fill in|how often will|will you be able/i,
+  email:       /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/,
+  aadhar:      /^\d{12}$/,
+  phone:       /^(91)?[6-9]\d{9}$/,
+  dob:         /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/,
+  gender:      /^(male|female)$/i,
+  marital:     /^(single|married|unmarried|divorced|widowed)$/i,
+  joining:     /immediate|as soon|asap|notice period|available from|ready to join|can join|joining/i,
+  experience:  /\d+\s*(year|yr|month|mon)s?\s*(of\s*)?(experience|exp)?\b|\bfresher\b|no experience/i,
+  expRole:     /\b(telecaller|bpo|sales|hr|recruiter|developer|engineer|analyst|manager|intern|executive|officer|associate)\b.*experience|experience.*\b(telecaller|bpo|sales)\b/i,
+  qual:        /\b(mba|pgdm|mca|msc|mtech|me|ma|mcom|mph|mphil|phd|doctorate|btech|be|bsc|bca|bba|bcom|ba|bfa|bed|bpharm|llb|mbbs)\b/i,
+  qual2:       /\b(inter|intermediate|12th|10th|ssc|hsc|plus two|\+2|diploma|iti)\b/i,
+  qual3:       /\b(bachelor|master|degree|graduate|post.?graduate|engineering|b\.tech|b\.sc|m\.sc)\b/i,
+  lang:        /\b(english|hindi|urdu|telugu|tamil|kannada|malayalam|marathi|bengali|gujarati|punjabi|odia|oriya)\b/i,
+  /* FIX: Pincode — allow space or hyphen before 6 digits e.g. "Hyderabad -500054" */
+  pincode:     /[\s\-]?\b\d{6}\b/,
+  city:        /\b(hyderabad|bangalore|bengaluru|chennai|mumbai|delhi|pune|kolkata|ahmedabad|jaipur|lucknow|noida|gurugram|gurgaon|vizag|visakhapatnam|warangal|karimnagar|nizamabad|secunderabad|chintal|kukatpally|dilsukhnagar|ameerpet|begumpet|madhapur|kondapur|gachibowli)\b/i,
+  state:       /\b(telangana|andhra|ap|ts|maharashtra|karnataka|tamilnadu|tamil nadu|kerala|gujarat|rajasthan|up|uttarpradesh)\b/i,
+  /* FIX: Expanded addrKeyword — "residency", "apartments", "phase", "no " (flat no) */
+  addrKeyword: /\b(h\.?no|flat|plot|door|street|road|nagar|colony|dist|district|mandal|village|sector|phase|block|pincode|pin|residency|apartments?|towers?|heights?|layout|extension|enclave|garden|park|hills?|valley|lane|avenue|cross|main)\b/i,
+  /* FIX: Extended name regex — supports Unicode (Telugu, Hindi etc.) */
+  latinName:   /^[a-zA-Z][a-zA-Z\s\.]{2,}$/,
+  unicodeName: /^[\u0900-\u097F\u0C00-\u0C7F\u0B80-\u0BFF][^\d@#!%&*]{2,}$/,  // Devanagari + Telugu + Tamil
+  /* FIX: Aadhar sanity — not a phone/order number */
+  notAadhar:   /^(91\d{10}|[6-9]\d{9})$/,
+  greeting:    /^(hi|hello|dear|sir|madam|namaste|నమస్కారం|नमस्ते)[\s,!]*$/i,
+};
 
-/* ── Helpers ── */
+/* ─────────────────────────────────────────────
+   FIX: Input size guard — prevent UI blocking
+   Max 200 lines recommended; warn at 150
+───────────────────────────────────────────── */
+const MAX_LINES = 200;
+const WARN_LINES = 100;
+
+function onInputChange() {
+  const val = document.getElementById("inputText").value;
+  const lines = val.split("\n").filter(l => l.trim().length > 0).length;
+  document.getElementById("lineCount").textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
+  const warn = document.getElementById("limitWarn");
+  if (lines > MAX_LINES) {
+    warn.textContent = `⚠ Over ${MAX_LINES} lines — truncating to first ${MAX_LINES}`;
+    warn.className = "warn-limit";
+  } else if (lines > WARN_LINES) {
+    warn.textContent = `ℹ ${lines} lines — large input`;
+    warn.className = "";
+  } else {
+    warn.textContent = "";
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────── */
 function properCase(str) {
   return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function stripLabel(str) {
   str = str.replace(/\*/g, "").trim();
-  str = str.replace(/^\d{1,2}[\.\-\)]\s*/, "").trim();
+  /* FIX: Only strip numbered-list prefix if it's NOT a date.
+     A date like "14-07-2005" would match ^\d{1,2}\- and get destroyed.
+     Guard: if line matches a date pattern, skip this strip entirely. */
+  if (!/^\d{1,2}\s*[\/\-\.]\s*\d{1,2}\s*[\/\-\.]\s*\d{4}/.test(str)) {
+    str = str.replace(/^\d{1,2}[\.\)]\s*/, "").trim(); // only strip "14." or "14)" not "14-"
+  }
   const colonIdx = str.indexOf(":");
   if (colonIdx > 0 && colonIdx < 55) {
     const before = str.substring(0, colonIdx);
@@ -356,163 +630,373 @@ function stripLabel(str) {
   return str;
 }
 
-/* ── Main Parser ── */
+/* ─────────────────────────────────────────────
+   Confidence dot — visual only, never copies
+   Shown as a tiny coloured circle beside the key.
+   Tooltip explains meaning on hover.
+───────────────────────────────────────────── */
+const CONF_TIPS = {
+  high: "Auto-detected with high confidence",
+  med:  "Inferred — double-check this field",
+  low:  "Uncertain — likely needs correction",
+};
+function makeConfDot(level) {
+  if (!level) return null;
+  const dot = document.createElement("span");
+  dot.className = `conf-dot ${level}`;
+  dot.setAttribute("title", CONF_TIPS[level] || "");
+  dot.setAttribute("aria-label", CONF_TIPS[level] || "");
+  dot.setAttribute("aria-hidden", "true"); // decorative for screen readers
+  return dot;
+}
+
+/* ─────────────────────────────────────────────
+   FIX: Context-aware name resolver
+   Tracks consecutive name-like lines to infer
+   candidate vs father's name positionally
+───────────────────────────────────────────── */
+function isNameLike(line) {
+  return (RX.latinName.test(line) || RX.unicodeName.test(line))
+    && line.split(/\s+/).length <= 5
+    && !RX.greeting.test(line);
+}
+
+/* ─────────────────────────────────────────────
+   MAIN PARSER
+───────────────────────────────────────────── */
 function parseData() {
+  const t0 = performance.now();
   const raw = document.getElementById("inputText").value.trim();
-  const log = [];
 
   if (!raw) { alert("Please paste candidate data first."); return; }
 
+  /* FIX: Enforce line limit — prevents UI thread blocking */
+  let allLines = raw.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  if (allLines.length > MAX_LINES) {
+    allLines = allLines.slice(0, MAX_LINES);
+  }
+
+  /* Show loading state */
+  const btn = document.getElementById("parseBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Parsing…';
+
+  /* FIX: Use DocumentFragment for DOM — avoids repeated reflow */
+  /* Run parse async so browser can paint loading state first */
+  setTimeout(() => {
+    const result = runParse(allLines);
+    renderOutput(result.fields, result.log, result.warnings);
+    const t1 = performance.now();
+    const perf = document.getElementById("perfBar");
+    perf.textContent = `⚡ Parsed ${allLines.length} lines in ${(t1 - t0).toFixed(1)}ms`;
+    perf.classList.add("visible");
+
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Parse Candidate';
+  }, 16); // one rAF tick
+}
+
+function runParse(lines) {
+  const log = [];
+  const warnings = [];
+
   const c = {
-    name: "", fatherName: "", phone: "", altPhone: "", email: "",
-    dob: "", gender: "", marital: "", aadhar: "", qualification: "",
-    address: "", languages: "", experience: "", joining: ""
+    name:          { val: "", conf: "" },
+    fatherName:    { val: "", conf: "" },
+    phone:         { val: "", conf: "high" },
+    altPhone:      { val: "", conf: "high" },
+    email:         { val: "", conf: "high" },
+    dob:           { val: "", conf: "high" },
+    gender:        { val: "", conf: "high" },
+    marital:       { val: "", conf: "high" },
+    aadhar:        { val: "", conf: "" },
+    qualification: { val: "", conf: "" },
+    address:       { val: "", conf: "med", contaminated: false },
+    languages:     { val: "", conf: "high" },
+    experience:    { val: "", conf: "" },
+    joining:       { val: "", conf: "high" },
   };
 
-  const lines = raw.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  /* FIX: Two-pass approach
+     Pass 1 — extract unambiguous signals (email, phone, DOB, Aadhar, gender, marital, joining)
+     Pass 2 — classify remaining lines with context awareness
+  */
 
+  const unmatched = [];
+
+  // PASS 1: High-confidence unambiguous fields
   lines.forEach(rawLine => {
-
-    if (/attach|resume|\.pdf|\.doc|\.docx|upload|kindly fill|please note|fill in|how often will|will you be able/i.test(rawLine)) {
-      log.push({ type: "warn", msg: `Skipped → ${rawLine}` });
+    if (RX.skip.test(rawLine)) {
+      log.push({ type: "warn", msg: `Skipped → ${rawLine.substring(0,60)}` });
       return;
     }
 
     const line = stripLabel(rawLine);
-    if (!line) return;
+    if (!line || line.length < 2) return;
     const lower = line.toLowerCase();
 
     // EMAIL
-    const emailMatch = line.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
-    if (emailMatch) { c.email = emailMatch[0].toLowerCase(); log.push({ type:"ok", msg:`Email → ${c.email}` }); return; }
-
-    // AADHAR — 12 digits
-    const aadharClean = line.replace(/[\s\-]/g, "");
-    if (/^\d{12}$/.test(aadharClean)) { c.aadhar = aadharClean; log.push({ type:"ok", msg:`Aadhar → ${aadharClean}` }); return; }
-
-    // PHONE — 10-digit Indian mobile
-    const phoneClean = line.replace(/[\s\-().+]/g, "");
-    if (/^(91)?[6-9]\d{9}$/.test(phoneClean)) {
-      const p10 = phoneClean.slice(-10);
-      if (!c.phone) { c.phone = p10; log.push({ type:"ok", msg:`Phone → ${p10}` }); }
-      else if (!c.altPhone && p10 !== c.phone) { c.altPhone = p10; log.push({ type:"ok", msg:`Alt Phone → ${p10}` }); }
+    const emailMatch = line.match(RX.email);
+    if (emailMatch) {
+      c.email.val = emailMatch[0].toLowerCase();
+      log.push({ type:"ok", msg:`Email → ${c.email.val}` });
       return;
     }
 
-    // DOB — convert to DD-MM-YYYY
-    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/.test(line)) {
-      const parts = line.split(/[\/\-\.]/);
-      c.dob = `${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}-${parts[2]}`;
-      log.push({ type:"ok", msg:`DOB → ${c.dob}` }); return;
+    // PHONE
+    const phoneClean = line.replace(/[\s\-().+]/g, "");
+    if (RX.phone.test(phoneClean)) {
+      const p10 = phoneClean.slice(-10);
+      if (!c.phone.val) { c.phone.val = p10; log.push({ type:"ok", msg:`Phone → ${p10}` }); }
+      else if (!c.altPhone.val && p10 !== c.phone.val) { c.altPhone.val = p10; log.push({ type:"ok", msg:`Alt Phone → ${p10}` }); }
+      return;
+    }
+
+    // DOB — FIX: check BOTH raw and stripped line; parse with trimmed parts
+    const dobRaw = rawLine.trim();
+    const dobPattern = /^\s*(\d{1,2})\s*[\/\-\.]\s*(\d{1,2})\s*[\/\-\.]\s*(\d{4})\s*$/;
+    const dobMatch = dobRaw.match(dobPattern) || line.match(dobPattern);
+    if (dobMatch) {
+      c.dob.val = `${dobMatch[1].padStart(2,'0')}-${dobMatch[2].padStart(2,'0')}-${dobMatch[3]}`;
+      log.push({ type:"ok", msg:`DOB → ${c.dob.val}` });
+      return;
     }
 
     // GENDER
-    if (/^(male|female)$/i.test(line)) { c.gender = properCase(line); log.push({ type:"ok", msg:`Gender → ${c.gender}` }); return; }
+    if (RX.gender.test(line)) {
+      c.gender.val = properCase(line);
+      log.push({ type:"ok", msg:`Gender → ${c.gender.val}` });
+      return;
+    }
 
-    // MARITAL STATUS
-    if (/^(single|married|unmarried|divorced|widowed)$/i.test(line)) { c.marital = properCase(line); log.push({ type:"ok", msg:`Marital → ${c.marital}` }); return; }
+    // MARITAL
+    if (RX.marital.test(line)) {
+      c.marital.val = properCase(line);
+      log.push({ type:"ok", msg:`Marital → ${c.marital.val}` });
+      return;
+    }
 
     // JOINING
-    if (/immediate|as soon|asap|notice period|available from|ready to join|can join|joining/i.test(lower)) {
-      c.joining = properCase(line); log.push({ type:"ok", msg:`Joining → ${c.joining}` }); return;
+    if (RX.joining.test(lower)) {
+      c.joining.val = properCase(line);
+      log.push({ type:"ok", msg:`Joining → ${c.joining.val}` });
+      return;
     }
 
     // EXPERIENCE
-    if (
-      /\d+\s*(year|yr|month|mon)s?\s*(of\s*)?(experience|exp)?\b|\bfresher\b|no experience/i.test(lower) ||
-      /\b(telecaller|bpo|sales|hr|recruiter|developer|engineer|analyst|manager|intern|executive|officer|associate)\b.*experience|experience.*\b(telecaller|bpo|sales)\b/i.test(lower)
-    ) {
-      if (!c.experience) { c.experience = properCase(line); log.push({ type:"ok", msg:`Experience → ${c.experience}` }); }
+    if (RX.experience.test(lower) || RX.expRole.test(lower)) {
+      if (!c.experience.val) {
+        c.experience.val = properCase(line);
+        c.experience.conf = "high";
+        log.push({ type:"ok", msg:`Experience → ${c.experience.val}` });
+      }
       return;
     }
 
     // QUALIFICATION
-    if (
-      /\b(mba|pgdm|mca|msc|mtech|me|ma|mcom|mph|mphil|phd|doctorate|btech|be|bsc|bca|bba|bcom|ba|bfa|bed|bpharm|llb|mbbs)\b/i.test(line) ||
-      /\b(inter|intermediate|12th|10th|ssc|hsc|plus two|\+2|diploma|iti)\b/i.test(line) ||
-      /\b(bachelor|master|degree|graduate|post.?graduate|engineering|b\.tech|b\.sc|m\.sc)\b/i.test(line)
-    ) {
-      c.qualification = c.qualification ? c.qualification + " | " + properCase(line) : properCase(line);
-      log.push({ type:"ok", msg:`Qualification → ${properCase(line)}` }); return;
-    }
-
-    // LANGUAGES
-    if (/\b(english|hindi|urdu|telugu|tamil|kannada|malayalam|marathi|bengali|gujarati|punjabi|odia|oriya)\b/i.test(line)) {
-      c.languages = c.languages ? c.languages + ", " + line : properCase(line);
-      log.push({ type:"ok", msg:`Languages → ${line}` }); return;
-    }
-
-    // ADDRESS
-    if (
-      /\b\d{6}\b/.test(line) ||
-      /\b(hyderabad|bangalore|bengaluru|chennai|mumbai|delhi|pune|kolkata|ahmedabad|jaipur|lucknow|noida|gurugram|gurgaon|vizag|visakhapatnam|warangal|karimnagar|nizamabad|secunderabad)\b/i.test(line) ||
-      /\b(telangana|andhra|ap|ts|maharashtra|karnataka|tamilnadu|tamil nadu|kerala|gujarat|rajasthan)\b/i.test(line) ||
-      /\b(h\.?no|flat|plot|door|street|road|nagar|colony|dist|district|mandal|village|sector|phase|block|pincode|pin)\b/i.test(line) ||
-      (line.includes(",") && line.length > 10 && !line.includes("@") && !/^\d+$/.test(line.replace(/,/g,"")))
-    ) {
-      c.address = c.address ? c.address + ", " + line : line;
-      log.push({ type:"ok", msg:`Address → ${line}` }); return;
-    }
-
-    // NAME / FATHER'S NAME
-    if (/^[a-zA-Z][a-zA-Z\s\.]{2,}$/.test(line) && line.split(/\s+/).length <= 5) {
-      if (!c.name) { c.name = properCase(line); log.push({ type:"ok", msg:`Name → ${c.name}` }); }
-      else if (!c.fatherName) { c.fatherName = properCase(line); log.push({ type:"ok", msg:`Father Name → ${c.fatherName}` }); }
-      else { c.address = c.address ? c.address + ", " + properCase(line) : properCase(line); log.push({ type:"warn", msg:`Extra name-like → address: ${line}` }); }
+    if (RX.qual.test(line) || RX.qual2.test(line) || RX.qual3.test(line)) {
+      c.qualification.val = c.qualification.val
+        ? c.qualification.val + " | " + properCase(line)
+        : properCase(line);
+      c.qualification.conf = "high";
+      log.push({ type:"ok", msg:`Qualification → ${properCase(line)}` });
       return;
     }
 
-    // CATCH-ALL → address
+    // LANGUAGES
+    if (RX.lang.test(line)) {
+      c.languages.val = c.languages.val ? c.languages.val + ", " + line : properCase(line);
+      log.push({ type:"ok", msg:`Languages → ${line}` });
+      return;
+    }
+
+    // ADDRESS — strong signals
+    if (
+      RX.pincode.test(line) ||
+      RX.city.test(line) ||
+      RX.state.test(line) ||
+      RX.addrKeyword.test(line)
+    ) {
+      c.address.val = c.address.val ? c.address.val + ", " + line : line;
+      c.address.conf = "high";
+      log.push({ type:"ok", msg:`Address → ${line}` });
+      return;
+    }
+
+    /* FIX: Aadhar sanity check — reject phone-like 12-digit numbers */
+    const aadharClean = line.replace(/[\s\-]/g, "");
+    if (RX.aadhar.test(aadharClean) && !RX.notAadhar.test(aadharClean)) {
+      // Extra sanity: all same digit is not Aadhar
+      if (!/^(.)\1{11}$/.test(aadharClean)) {
+        c.aadhar.val = aadharClean;
+        c.aadhar.conf = "med"; // medium because we can't verify
+        log.push({ type:"ok", msg:`Aadhar → ${aadharClean}` });
+        return;
+      }
+    }
+
+    // Send to unmatched for PASS 2
+    unmatched.push(line);
+  });
+
+  // PASS 2: Context-aware name + address resolution
+  // FIX: Skip greetings, first name-like = candidate, second = father
+  const nameBuffer = [];
+
+  unmatched.forEach(line => {
+    // FIX: Skip greeting lines (Hi, Dear Sir, etc.)
+    if (RX.greeting.test(line)) {
+      log.push({ type:"warn", msg:`Greeting skipped → ${line}` });
+      return;
+    }
+
+    if (isNameLike(line)) {
+      nameBuffer.push(line);
+      if (!c.name.val) {
+        c.name.val = properCase(line);
+        // FIX: Confidence — Unicode names are medium (could be misclassified)
+        c.name.conf = RX.unicodeName.test(line) ? "med" : "high";
+        log.push({ type:"ok", msg:`Name → ${c.name.val}` });
+      } else if (!c.fatherName.val) {
+        c.fatherName.val = properCase(line);
+        c.fatherName.conf = "med"; // positional inference — medium confidence
+        log.push({ type:"ok", msg:`Father's Name → ${c.fatherName.val}` });
+      } else {
+        // FIX: Flag address contamination — don't silently dump
+        c.address.val = c.address.val ? c.address.val + ", " + properCase(line) : properCase(line);
+        c.address.contaminated = true;
+        warnings.push(`Extra name-like line added to address: "${line}" — review manually`);
+        log.push({ type:"warn", msg:`Extra name-like → address: ${line}` });
+      }
+      return;
+    }
+
+    // Comma-bearing lines likely address
+    if (line.includes(",") && line.length > 10 && !line.includes("@") && !/^\d+$/.test(line.replace(/,/g,""))) {
+      c.address.val = c.address.val ? c.address.val + ", " + line : line;
+      log.push({ type:"ok", msg:`Address (comma) → ${line}` });
+      return;
+    }
+
+    // Catch-all — log clearly as uncertain
     if (line.length > 2) {
-      c.address = c.address ? c.address + ", " + line : line;
+      c.address.val = c.address.val ? c.address.val + ", " + line : line;
+      c.address.contaminated = true;
+      warnings.push(`Unclassified line added to address: "${line}" — review manually`);
       log.push({ type:"warn", msg:`Catch-all → address: ${line}` });
     }
   });
 
-  // Render output
+  // Build field list with confidence
   const fields = [
-    { key: "Name",                              val: c.name },
-    { key: "Father's Name",                     val: c.fatherName },
-    { key: "Phone Number",                      val: c.phone },
-    { key: "Alternative Number",                val: c.altPhone },
-    { key: "Email ID",                          val: c.email },
-    { key: "Date of Birth",                     val: c.dob },
-    { key: "Gender",                            val: c.gender },
-    { key: "Marital status",                    val: c.marital },
-    { key: "Aadhar Number",                     val: c.aadhar },
-    { key: "Highest Qualification",             val: c.qualification },
-    { key: "Residential address with pincode",  val: c.address },
-    { key: "Spoken Languages",                  val: c.languages },
-    { key: "Experience",                        val: c.experience },
-    { key: "How often will you be able to join",val: c.joining },
-    { key: "Attach your resume",                val: "" },
+    { key: "Name",                              val: c.name.val,          conf: c.name.conf },
+    { key: "Father's Name",                     val: c.fatherName.val,    conf: c.fatherName.conf },
+    { key: "Phone Number",                      val: c.phone.val,         conf: c.phone.val ? "high" : "" },
+    { key: "Alternative Number",                val: c.altPhone.val,      conf: c.altPhone.val ? "high" : "" },
+    { key: "Email ID",                          val: c.email.val,         conf: c.email.val ? "high" : "" },
+    { key: "Date of Birth",                     val: c.dob.val,           conf: c.dob.val ? "high" : "" },
+    { key: "Gender",                            val: c.gender.val,        conf: c.gender.val ? "high" : "" },
+    { key: "Marital Status",                    val: c.marital.val,       conf: c.marital.val ? "high" : "" },
+    { key: "Aadhar Number",                     val: c.aadhar.val,        conf: c.aadhar.conf },
+    { key: "Highest Qualification",             val: c.qualification.val, conf: c.qualification.conf },
+    { key: "Residential Address with Pincode",  val: c.address.val,       conf: c.address.val ? (c.address.contaminated ? "low" : "high") : "", contaminated: c.address.contaminated },
+    { key: "Spoken Languages",                  val: c.languages.val,     conf: c.languages.val ? "high" : "" },
+    { key: "Experience",                        val: c.experience.val,    conf: c.experience.conf },
+    { key: "How Soon Can You Join",             val: c.joining.val,       conf: c.joining.val ? "high" : "" },
+    { key: "Attach Your Resume",                val: "",                  conf: "" },
   ];
 
+  return { fields, log, warnings };
+}
+
+/* ─────────────────────────────────────────────
+   renderOutput
+   — Confidence shown as a tiny dot (visual only)
+   — Every field has an ✎ Edit button on hover
+   — Editing replaces value inline; saves on Enter or Save click
+   — Copy reads only .field-key + .field-val text — badges never included
+───────────────────────────────────────────── */
+function renderOutput(fields, log, warnings) {
   const box = document.getElementById("parsedOutput");
-  box.innerHTML = "";
+  const frag = document.createDocumentFragment();
 
   const intro = document.createElement("div");
   intro.className = "output-intro";
   intro.textContent = "Kindly fill this and send me back";
-  box.appendChild(intro);
+  frag.appendChild(intro);
+
+  // Legend for dots — one line, right-aligned, no copy impact
+  const legend = document.createElement("div");
+  legend.setAttribute("aria-hidden", "true");
+  legend.style.cssText = "display:flex;gap:12px;justify-content:flex-end;margin-bottom:6px;font-size:10.5px;color:var(--muted);font-weight:600;";
+  legend.innerHTML = `
+    <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;margin-right:3px;"></span>Auto-detected</span>
+    <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;vertical-align:middle;margin-right:3px;"></span>Check this</span>
+    <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;vertical-align:middle;margin-right:3px;"></span>Needs fix</span>
+  `;
+  frag.appendChild(legend);
 
   fields.forEach((f, i) => {
-    const line = document.createElement("span");
-    line.className = "field-line";
-    line.style.animationDelay = (i * 30) + "ms";
+    const row = document.createElement("div");
+    row.className = "field-line";
+    row.style.animationDelay = (i * 25) + "ms";
+    row.dataset.fieldKey = f.key; // store key for copy
 
-    const key = document.createElement("span");
-    key.className = "field-key";
-    key.textContent = f.key + ": ";
+    // ── Left: key + conf dot + value ──
+    const main = document.createElement("div");
+    main.className = "field-main";
 
-    const val = document.createElement("span");
-    val.className = f.val ? "field-val" : "field-val empty";
-    val.textContent = f.val || "";
+    const keyEl = document.createElement("span");
+    keyEl.className = "field-key";
+    keyEl.textContent = f.key + ":";
+    main.appendChild(keyEl);
 
-    line.appendChild(key);
-    line.appendChild(val);
-    box.appendChild(line);
+    // Confidence dot (visual only — not inside .field-val so copy ignores it)
+    if (f.conf && f.val) {
+      const dot = makeConfDot(f.conf);
+      if (dot) main.appendChild(dot);
+    }
+
+    const valEl = document.createElement("span");
+    valEl.className = f.val ? "field-val" : "field-val empty";
+    valEl.textContent = f.val || "—";
+    valEl.dataset.copyVal = f.val || ""; // copy reads this attr, not textContent
+    main.appendChild(valEl);
+
+    row.appendChild(main);
+
+    // ── Right: Edit button ──
+    const editBtn = document.createElement("button");
+    editBtn.className = "edit-btn";
+    editBtn.textContent = "✎ Edit";
+    editBtn.setAttribute("aria-label", `Edit ${f.key}`);
+    editBtn.onclick = () => activateEdit(row, keyEl, valEl, editBtn, f.key);
+    row.appendChild(editBtn);
+
+    frag.appendChild(row);
+
+    // Contamination warning under address
+    if (f.contaminated && f.val) {
+      const warnRow = document.createElement("div");
+      warnRow.className = "field-warn";
+      warnRow.setAttribute("aria-hidden", "true");
+      warnRow.textContent = "⚠ Address may contain unclassified lines — edit if needed";
+      frag.appendChild(warnRow);
+    }
   });
+
+  // Warnings panel
+  if (warnings.length > 0) {
+    const warnBlock = document.createElement("div");
+    warnBlock.setAttribute("aria-hidden", "true");
+    warnBlock.style.cssText = "margin-top:14px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11.5px;line-height:1.8;";
+    warnBlock.innerHTML = `<strong style="color:#92400e;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;">⚠ Review These Fields</strong><br>` +
+      warnings.map(w => `<span style="color:#92400e;">▸ ${w}</span>`).join("<br>");
+    frag.appendChild(warnBlock);
+  }
+
+  box.innerHTML = "";
+  box.appendChild(frag);
 
   // Parse log
   const logEl = document.getElementById("parseLog");
@@ -521,18 +1005,102 @@ function parseData() {
   logEl.classList.add("visible");
 }
 
-/* ── Copy ── */
+/* ─────────────────────────────────────────────
+   Inline edit — activate / save
+───────────────────────────────────────────── */
+function activateEdit(row, keyEl, valEl, editBtn, fieldKey) {
+  // Prevent double-activation
+  if (row.querySelector(".field-edit-input")) return;
+
+  const currentVal = valEl.dataset.copyVal || "";
+
+  // Hide the static value
+  valEl.style.display = "none";
+  editBtn.style.display = "none";
+
+  // Create input
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "field-edit-input";
+  input.value = currentVal;
+  input.setAttribute("aria-label", `Editing ${fieldKey}`);
+
+  // Create Save button
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "save-btn";
+  saveBtn.textContent = "Save";
+
+  // Insert after keyEl inside .field-main
+  const main = row.querySelector(".field-main");
+  main.appendChild(input);
+  row.appendChild(saveBtn);
+
+  input.focus();
+  input.select();
+
+  function commitEdit() {
+    const newVal = input.value.trim();
+    valEl.textContent = newVal || "—";
+    valEl.dataset.copyVal = newVal;
+    valEl.className = newVal ? "field-val" : "field-val empty";
+
+    // Show "edited" mark if value was changed
+    const existingMark = main.querySelector(".edited-mark");
+    if (existingMark) existingMark.remove();
+    if (newVal !== currentVal) {
+      const mark = document.createElement("span");
+      mark.className = "edited-mark";
+      mark.setAttribute("aria-hidden", "true");
+      mark.textContent = "(edited)";
+      main.appendChild(mark);
+      // Remove conf dot (no longer relevant after manual edit)
+      const dot = main.querySelector(".conf-dot");
+      if (dot) dot.remove();
+    }
+
+    // Restore
+    valEl.style.display = "";
+    editBtn.style.display = "";
+    editBtn.style.opacity = "1";
+    setTimeout(() => { editBtn.style.opacity = ""; }, 1200);
+    input.remove();
+    saveBtn.remove();
+  }
+
+  saveBtn.onclick = commitEdit;
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
+    if (e.key === "Escape") {
+      valEl.style.display = "";
+      editBtn.style.display = "";
+      input.remove();
+      saveBtn.remove();
+    }
+  });
+}
+
+/* ─────────────────────────────────────────────
+   Copy — clean plain text only
+   Reads .field-key textContent + .field-val data-copyVal
+   so confidence dots, "(edited)" marks, and warnings
+   NEVER appear in the copied WhatsApp message.
+───────────────────────────────────────────── */
 function copyOutput() {
   const box = document.getElementById("parsedOutput");
-  const lines = box.querySelectorAll(".field-line");
+  const rows = box.querySelectorAll(".field-line");
 
-  if (!lines.length) { alert("Nothing to copy. Please parse a candidate first."); return; }
+  if (!rows.length) { alert("Nothing to copy. Please parse a candidate first."); return; }
 
   let text = "Kindly fill this and send me back\n";
-  lines.forEach(line => {
-    const k = line.querySelector(".field-key");
-    const v = line.querySelector(".field-val");
-    text += (k ? k.textContent : "") + (v ? v.textContent : "") + "\n";
+  rows.forEach(row => {
+    const k = row.querySelector(".field-key");
+    const v = row.querySelector(".field-val");
+    if (!k) return;
+    // Use data-copyVal for the value — this is always the clean text,
+    // regardless of what visual decorators were appended to the DOM.
+    const keyText  = k.textContent.replace(/:$/, "").trim(); // strip trailing colon
+    const valText  = v ? (v.dataset.copyVal ?? v.textContent.replace("—","").trim()) : "";
+    text += `${keyText}: ${valText}\n`;
   });
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -561,16 +1129,22 @@ function showCopied() {
   setTimeout(() => { btn.textContent = orig; btn.style.background = ""; }, 2000);
 }
 
-/* ── Clear ── */
+/* ─────────────────────────────────────────────
+   Clear
+───────────────────────────────────────────── */
 function clearAll() {
   document.getElementById("inputText").value = "";
+  document.getElementById("lineCount").textContent = "0 lines";
+  document.getElementById("limitWarn").textContent = "";
   const box = document.getElementById("parsedOutput");
   box.innerHTML = '<div class="placeholder"><div class="placeholder-icon">📄</div><div>Paste candidate data on the left<br>and click <strong>Parse Candidate</strong></div></div>';
   const logEl = document.getElementById("parseLog");
   logEl.innerHTML = "";
   logEl.classList.remove("visible");
+  const perf = document.getElementById("perfBar");
+  perf.textContent = "";
+  perf.classList.remove("visible");
 }
-
 </script>
 </body>
 </html>
